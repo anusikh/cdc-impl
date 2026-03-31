@@ -1,3 +1,5 @@
+implemented live on twitch: https://www.twitch.tv/anusikh
+
 ```
 # configure connect to listen to WAL
 curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" localhost:8083/connectors/ -d '{
