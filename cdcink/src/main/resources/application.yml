@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: cdcink
+
+  kafka:
+    bootstrap-servers: localhost:9094 # external ip of kafka is 9094
+    consumer:
+      group-id: cdc-elasticsearch-sink
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.anusikh.cdcink.model.DebeziumEnvelope
+    listener:
+      ack-mode: manual
+  elasticsearch:
+    uris: http://localhost:9200
+
+cdc:
+  kafka:
+    topic-pattern: dbserver1.public.*
+    auto-start: true
+
+server:
+  port: 8080
