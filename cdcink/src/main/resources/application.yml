@@ -19,7 +19,7 @@ spring:
 
 cdc:
   kafka:
-    topic-pattern: dbserver1.public.*
+    topic-pattern: "dbserver1\\.public\\..*"
     auto-start: true
 
 server:

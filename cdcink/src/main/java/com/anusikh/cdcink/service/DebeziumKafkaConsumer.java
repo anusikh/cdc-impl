@@ -25,15 +25,22 @@ public class DebeziumKafkaConsumer {
         String key = record.key();
         DebeziumEnvelope envelope = record.value();
 
-        log.debug("Received Debezium event - Topic: {}, Key: {}, Partition: {}, Offset: {}",
-                topic, key, record.partition(), record.offset());
+        log.warn("DLQ test marker – entering listener: topic={}, partition={}, offset={}, key={}",
+                topic, record.partition(), record.offset(), key);
+
+        log.info("Received Debezium event - Topic: {}, Partition: {}, Offset: {}, Key: {}",
+                topic, record.partition(), record.offset(), key);
 
         try {
-            elasticsearchIndexingService.indexDebeziumEvent(topic, envelope);
+            if (envelope != null) {
+                elasticsearchIndexingService.indexDebeziumEvent(topic, key, envelope);
+                log.info("Successfully indexed event from topic: {} with offset: {}", topic, record.offset());
+            } else {
+                log.warn("Received empty or null record value from topic: {}", topic);
+            }
             acknowledgment.acknowledge();
-            log.debug("Successfully processed and acknowledged message from topic: {}", topic);
         } catch (Exception e) {
-            log.error("Failed to process Debezium event from topic: {}. Error: {}", topic, e.getMessage(), e);
+            log.error("Error processing event from topic: {}. Error: {}", topic, e.getMessage());
             throw e;
         }
     }
