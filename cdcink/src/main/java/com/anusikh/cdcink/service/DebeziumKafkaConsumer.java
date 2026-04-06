@@ -1,6 +1,7 @@
 package com.anusikh.cdcink.service;
 
 import com.anusikh.cdcink.model.DebeziumEnvelope;
+import com.anusikh.cdcink.service.exception.NonRetryableCdcException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -25,23 +26,29 @@ public class DebeziumKafkaConsumer {
         String key = record.key();
         DebeziumEnvelope envelope = record.value();
 
-        log.warn("DLQ test marker – entering listener: topic={}, partition={}, offset={}, key={}",
-                topic, record.partition(), record.offset(), key);
-
         log.info("Received Debezium event - Topic: {}, Partition: {}, Offset: {}, Key: {}",
                 topic, record.partition(), record.offset(), key);
 
-        try {
-            if (envelope != null) {
-                elasticsearchIndexingService.indexDebeziumEvent(topic, key, envelope);
-                log.info("Successfully indexed event from topic: {} with offset: {}", topic, record.offset());
-            } else {
-                log.warn("Received empty or null record value from topic: {}", topic);
-            }
+        if (envelope == null) {
+            log.warn("Received empty or null record value from topic: {}", topic);
             acknowledgment.acknowledge();
-        } catch (Exception e) {
-            log.error("Error processing event from topic: {}. Error: {}", topic, e.getMessage());
-            throw e;
+            return;
+        }
+
+        validateEnvelope(topic, envelope);
+        elasticsearchIndexingService.indexDebeziumEvent(topic, key, envelope);
+        log.info("Successfully indexed event from topic: {} with offset: {}", topic, record.offset());
+        acknowledgment.acknowledge();
+    }
+
+    private void validateEnvelope(String topic, DebeziumEnvelope envelope) {
+        if (envelope.getPayload() == null) {
+            throw new NonRetryableCdcException("Missing Debezium payload for topic " + topic);
+        }
+
+        DebeziumEnvelope.Source source = envelope.getPayload().getSource();
+        if (source == null || source.getTable() == null || source.getDb() == null) {
+            throw new NonRetryableCdcException("Missing Debezium source metadata for topic " + topic);
         }
     }
 }

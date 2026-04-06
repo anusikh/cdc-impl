@@ -9,5 +9,9 @@
   "topic.prefix": "dbserver1",
   "schema.include.list": "public",
   "table.include.list": "public.users",
-  "plugin.name": "pgoutput"
+  "plugin.name": "pgoutput",
+  "errors.tolerance": "all",
+  "errors.deadletterqueue.topic.name": "cdc.dlq.connect",
+  "errors.deadletterqueue.context.headers.enable": "true",
+  "errors.deadletterqueue.topic.replication.factor": "1"
 }

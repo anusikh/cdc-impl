@@ -10,6 +10,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
+        spring.json.use.type.headers: false
         spring.json.trusted.packages: "*"
         spring.json.value.default.type: com.anusikh.cdcink.model.DebeziumEnvelope
     listener:
@@ -21,6 +22,12 @@ cdc:
   kafka:
     topic-pattern: "dbserver1\\.public\\..*"
     auto-start: true
+  dlq:
+    app-topic: ${CDC_DLQ_APP_TOPIC:cdc.dlq.app}
+    max-attempts: ${CDC_DLQ_MAX_ATTEMPTS:3}
+    initial-interval-ms: ${CDC_DLQ_INITIAL_INTERVAL_MS:1000}
+    multiplier: ${CDC_DLQ_MULTIPLIER:2.0}
+    max-interval-ms: ${CDC_DLQ_MAX_INTERVAL_MS:30000}
 
 server:
   port: 8080

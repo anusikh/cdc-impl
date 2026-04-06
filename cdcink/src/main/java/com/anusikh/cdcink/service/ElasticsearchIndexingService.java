@@ -3,6 +3,8 @@ package com.anusikh.cdcink.service;
 import com.anusikh.cdcink.model.CdcDocument;
 import com.anusikh.cdcink.model.DebeziumEnvelope;
 import com.anusikh.cdcink.repository.CdcDocumentRepository;
+import com.anusikh.cdcink.service.exception.NonRetryableCdcException;
+import com.anusikh.cdcink.service.exception.RetryableCdcException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +37,7 @@ public class ElasticsearchIndexingService {
         }
 
         CdcDocument document = mapToCdcDocument(topic, key, payload, operation);
-        
+
         switch (operation) {
             case "c":
             case "u":
@@ -50,7 +52,9 @@ public class ElasticsearchIndexingService {
                 deleteDocument(document);
                 break;
             default:
-                log.warn("Unknown operation type: {} for table: {}", operation, document.getTable());
+                throw new NonRetryableCdcException(
+                        "Unsupported Debezium operation '" + operation + "' for table " + document.getTable()
+                );
         }
     }
 
@@ -104,7 +108,7 @@ public class ElasticsearchIndexingService {
             log.debug("Saved document with ID: {} for table: {}", saved.getId(), document.getTable());
         } catch (Exception e) {
             log.error("Failed to save document for table: {}. Error: {}", document.getTable(), e.getMessage(), e);
-            throw new RuntimeException("Failed to index document to Elasticsearch", e);
+            throw new RetryableCdcException("Failed to index document to Elasticsearch", e);
         }
     }
 
@@ -114,7 +118,7 @@ public class ElasticsearchIndexingService {
             log.debug("Deleted document with ID: {} for table: {}", document.getId(), document.getTable());
         } catch (Exception e) {
             log.error("Failed to delete document for table: {}. Error: {}", document.getTable(), e.getMessage(), e);
-            throw new RuntimeException("Failed to delete document from Elasticsearch", e);
+            throw new RetryableCdcException("Failed to delete document from Elasticsearch", e);
         }
     }
 }
